@@ -31,6 +31,8 @@ public:
 	
 	virtual EAbcResult GetFaceSet( IAbcOFaceSet** out_ppOFaceSet, const char* in_pszName );
 
+  virtual size_t GetSampleCount();
+
 	void AddSample( 
 		const float* in_pfVertexPositions, int in_iVertexPositionsCount,
 		const Alembic::Abc::Box3d& in_BBox
@@ -52,7 +54,9 @@ public:
 		const unsigned int* in_pNodeIndices, int in_iNodeIndicesCount,
 		const unsigned int* in_pVertexNormalIndices, int in_iVertexNormalIndicesCount,
 		const float* in_pNormals, int in_iNormalCount,
-		const Alembic::Abc::Box3d& in_BBox
+    const float* in_pVelocities, int in_iVelocityCount,
+		const Alembic::Abc::Box3d& in_BBox,
+    const bool setFromPrevious
 	);
 };
 #endif

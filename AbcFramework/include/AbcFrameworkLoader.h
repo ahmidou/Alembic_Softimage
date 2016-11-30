@@ -19,10 +19,11 @@
 #	define WIN32_LEAN_AND_MEAN
 #	include <windows.h>
 #	define MODULE_HANDLE	HMODULE
-#	define LOAD_MODULE		LoadLibraryA
+//#	define LOAD_MODULE		LoadLibraryA
+#	define LOAD_MODULE		LoadLibraryEx
 #	define LINK_FUNCTION	GetProcAddress
 #	define CLOSE_MODULE		FreeLibrary
-#	define LIB_NAME			"AbcFramework.dll"
+#	define LIB_NAME			"Hybride_AbcFramework.dll"
 #else
 // Linux
 #	include <dlfcn.h>
@@ -63,7 +64,8 @@ public:
 	*/
 	static MODULE_HANDLE InitFramework()
 	{
-		MODULE_HANDLE l_hHandle = LOAD_MODULE( LIB_NAME );
+    LPCTSTR deplibFullPath = "U:\\PROD\\XSI_DATA\\users\\ahmidou\\Autodesk\\Softimage_2015_SP2\\Application\\Plugins\\Hybride_AbcFramework.dll";
+		MODULE_HANDLE l_hHandle = LOAD_MODULE( LIB_NAME, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
 		return l_hHandle;
 	}
 	

@@ -15,6 +15,7 @@
 #include "IAbcOProperty.h"
 #include "CAbcIPropertyAccessor.h"
 #include "CAbcIPropertyFactory.h"
+#include <algorithm>
 
 using namespace Alembic::Util;
 

@@ -30,6 +30,12 @@ void CAbcOPolyMesh::AddSample(
 	l_meshSchema.set( l_meshSample );
 }
 
+size_t CAbcOPolyMesh::GetSampleCount()
+{
+  Alembic::AbcGeom::OPolyMeshSchema& l_meshSchema = GetInternalObject().getSchema();
+  return l_meshSchema.getNumSamples();
+}
+
 void CAbcOPolyMesh::AddSample( 
 	const float* in_pfVertexPositions, int in_iVertexPositionsCount,
 	const int* in_pFaceVertices, int in_iFaceVerticesSize,
@@ -38,46 +44,59 @@ void CAbcOPolyMesh::AddSample(
 	const unsigned int* in_pNodeIndices, int in_iNodeIndicesCount,
 	const unsigned int* in_pVertexNormalIndices, int in_iVertexNormalIndicesCount,
 	const float* in_pNormals, int in_iNormalCount,
-	const Alembic::Abc::Box3d& in_BBox
+  const float* in_pVelocities, int in_iVelocityCount,
+	const Alembic::Abc::Box3d& in_BBox,
+  const bool setFromPrevious
 	)
 {
 	Alembic::AbcGeom::OPolyMeshSchema& l_meshSchema = GetInternalObject().getSchema();
+  // Check if we actually need to reuse previous frame mesh data in
+  // case of non moving mesh or undeformed one.
+  if(setFromPrevious)
+    l_meshSchema.setFromPrevious();
+  else
+  {
+    Alembic::AbcGeom::OV2fGeomParam::Sample l_UVs;
+    if (in_iUVCount > 0)
+    {
+      l_UVs.setScope(Alembic::AbcGeom::kFacevaryingScope);
+      l_UVs.setVals(Alembic::Abc::V2fArraySample((const Alembic::Abc::V2f*)in_pUVs, in_iUVCount));
 
-	Alembic::AbcGeom::OV2fGeomParam::Sample l_UVs;
-	if ( in_iUVCount > 0 )
-	{
-		l_UVs.setScope( Alembic::AbcGeom::kFacevaryingScope );
-		l_UVs.setVals( Alembic::Abc::V2fArraySample( (const Alembic::Abc::V2f*)in_pUVs, in_iUVCount ) );
+      if (in_iNodeIndicesCount > 0)
+      {
+        l_UVs.setIndices(Alembic::Abc::UInt32ArraySample(in_pNodeIndices, in_iNodeIndicesCount));
+      }
+    }
 
-		if ( in_iNodeIndicesCount > 0 )
-		{
-			l_UVs.setIndices( Alembic::Abc::UInt32ArraySample( in_pNodeIndices, in_iNodeIndicesCount ) );
-		}
-	}
-	
-	Alembic::AbcGeom::ON3fGeomParam::Sample l_Normals;
-	if ( in_iNormalCount > 0 )
-	{
-		l_Normals.setScope( Alembic::AbcGeom::kFacevaryingScope );
-		l_Normals.setVals( Alembic::Abc::N3fArraySample( (const Alembic::Abc::N3f*)in_pNormals, in_iNormalCount ) ); 
-		
-		if ( in_iVertexNormalIndicesCount > 0 )
-		{
-			l_Normals.setIndices( Alembic::Abc::UInt32ArraySample( in_pVertexNormalIndices, in_iVertexNormalIndicesCount ) );
-		}
-	}
+    Alembic::AbcGeom::ON3fGeomParam::Sample l_Normals;
+    if (in_iNormalCount > 0)
+    {
+      l_Normals.setScope(Alembic::AbcGeom::kFacevaryingScope);
+      l_Normals.setVals(Alembic::Abc::N3fArraySample((const Alembic::Abc::N3f*)in_pNormals, in_iNormalCount));
 
-	Alembic::AbcGeom::OPolyMeshSchema::Sample l_meshSample(
-		Alembic::Abc::P3fArraySample( (const Alembic::Abc::V3f*)in_pfVertexPositions, in_iVertexPositionsCount ),
-		Alembic::Abc::Int32ArraySample( in_pFaceVertices, in_iFaceVerticesSize ),
-		Alembic::Abc::Int32ArraySample( in_pFaceCounts, in_iFaceCountsSize ),
-		l_UVs,
-		l_Normals
-	);
+      if (in_iVertexNormalIndicesCount > 0)
+      {
+        l_Normals.setIndices(Alembic::Abc::UInt32ArraySample(in_pVertexNormalIndices, in_iVertexNormalIndicesCount));
+      }
+    }
 
-	l_meshSample.setSelfBounds( in_BBox );
+    Alembic::AbcGeom::OPolyMeshSchema::Sample l_meshSample(
+      Alembic::Abc::P3fArraySample((const Alembic::Abc::V3f*)in_pfVertexPositions, in_iVertexPositionsCount),
+      Alembic::Abc::Int32ArraySample(in_pFaceVertices, in_iFaceVerticesSize),
+      Alembic::Abc::Int32ArraySample(in_pFaceCounts, in_iFaceCountsSize),
+      l_UVs,
+      l_Normals
+      );
 
-	l_meshSchema.set( l_meshSample );
+    if (in_iVelocityCount > 0 && in_pVelocities != NULL)
+    {
+      l_meshSample.setVelocities(Alembic::Abc::V3fArraySample((const Alembic::Abc::V3f*)in_pVelocities, in_iVelocityCount));
+    }
+
+    l_meshSample.setSelfBounds(in_BBox);
+
+    l_meshSchema.set(l_meshSample);
+  }
 }
 
 void CAbcOPolyMesh::AddSample( 

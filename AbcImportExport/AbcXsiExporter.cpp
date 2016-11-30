@@ -26,6 +26,7 @@
 #include <xsi_pass.h>
 #include <xsi_polygonmesh.h>
 #include <xsi_primitive.h>
+#include <xsi_operator.h>
 #include <xsi_project.h>
 #include <xsi_scene.h>
 #include <xsi_status.h>
@@ -53,7 +54,7 @@ EmitLocation:	excluded because the data type is PointLocator
 */
 
 const wchar_t* AbcXsiExporter::EXCLUDED_ATTRIBUTES_POINTCLOUD = L"PointPosition, Size, PointVelocity, ID, EmitLocation, LocalTime";
-const wchar_t* AbcXsiExporter::EXCLUDED_ATTRIBUTES_POLYMESH	=	L"PointPosition, NodeUserNormal, LocalTime, Topology, PolygonalDescription";
+const wchar_t* AbcXsiExporter::EXCLUDED_ATTRIBUTES_POLYMESH	=	L"PointPosition, PointVelocity, NodeUserNormal, LocalTime, Topology, PolygonalDescription";
 
 using namespace XSI;
 
@@ -257,6 +258,7 @@ protected:
 		, m_ToExportPrimitive( false ) 
 		, m_ToExportTransform( false)
 		, m_ulNbSubframes( 1 )
+    , m_evalID( -1 )
 	{}
 
 	XSI::CStatus CreatePolymesh	 ( IAbcOPolyMesh** out_ppPolyMesh, XSI::SIObject in_obj, IAbcOObject* in_pParent, const XSI::CString& in_csName );
@@ -267,7 +269,7 @@ protected:
 	XSI::CStatus CreateProperties( IAbcOGeom* in_pAbcGeom, XSI::SIObject& in_obj, XSI::CRefArray& in_arefAttrs, const AttributeNameSet* in_pUserAttrs = NULL, const AttributeNameSet* in_pExcludedAttrs = NULL );
 	
 	XSI::CStatus WriteXformSample( double in_dFrame, double in_dTime );
-	XSI::CStatus WritePolymeshSample( double in_dFrame, double in_dTime );
+	XSI::CStatus WritePolymeshSample( double in_dFrame, double in_dTime, bool setFromPrevious, bool isStatic);
 	XSI::CStatus WritePointcloudSample( double in_dFrame, double in_dTime );
 	XSI::CStatus WriteCameraSample( double in_dFrame, double in_dTime );
 	XSI::CStatus WriteLocatorSample( double in_dFrame, double in_dTime );
@@ -279,6 +281,7 @@ protected:
 	CAbcPtr<IAbcOXform>		m_spAbcOXform;
 	CAbcPtr<IAbcOObject>	m_spAbcOPrim;
 	ULONG					m_ulNbSubframes;
+  LONG          m_evalID;
 	AttributeNameSet		m_AttrNameSet;
 	AttrToPropMap			m_AttrToPropMap;
 	ExportHelper::LongVector m_FaceCounts;
@@ -573,7 +576,36 @@ XSI::CStatus ExportTreeNode::WriteSample( double in_dFrame, double in_dTime )
 	{
 		if ( m_eExportObjType == EExportObject_Polymesh )
 		{
-			WritePolymeshSample( in_dFrame, in_dTime );
+      Primitive &prim = X3DObject(m_Obj).GetActivePrimitive(in_dFrame);
+      CRefArray nestedObj = prim.GetNestedObjects();
+      bool isStatic = false; // do not have any deformers
+      /*for (LONG i = 0; i < nestedObj.GetCount(); i++)
+      {
+        //Application().LogMessage("classID: "+CString(nestedObj[i].GetClassID()));
+        if (nestedObj[i].GetClassID() == siOperatorID)
+        {
+          Operator op = nestedObj[i];
+
+          CStringArray categories = op.GetCategories();
+          for (LONG j = 0; j < categories.GetCount(); j++)
+          {
+            if (categories[j] == "Operator")
+              isStatic = false;
+          }
+        }
+      }*/
+      // WritePolymeshSample(in_dFrame, in_dTime, false, !hasDeformer);
+
+      /* waiting for a Softimage bug to be fixed concerning EvaluationID*/
+      LONG evalID = prim.GetHierarchicalEvaluationID();
+      //Application().LogMessage("EvalID has not change: "+CString(evalID == m_evalID)+"\n isStatic:"+ CString(isStatic));
+      if (m_evalID != evalID)
+      {
+        WritePolymeshSample(in_dFrame, in_dTime, false, isStatic);
+        m_evalID = evalID;
+      }
+      else
+        WritePolymeshSample(in_dFrame, in_dTime, true, isStatic);
 		}
 		else if ( m_eExportObjType == EExportObject_Pointcloud )
 		{
@@ -624,78 +656,132 @@ XSI::CStatus ExportTreeNode::CreatePolymesh( IAbcOPolyMesh** out_ppPolyMesh, XSI
 	return XSI::CStatus::OK;
 }
 
-XSI::CStatus ExportTreeNode::WritePolymeshSample( double in_dFrame, double in_dTime )
+XSI::CStatus ExportTreeNode::WritePolymeshSample( double in_dFrame, double in_dTime ,bool setFromPrevious, bool isStatic)
 {
-	XSI::X3DObject x3dObj( m_Obj );
-	XSI::Primitive prim = x3dObj.GetActivePrimitive( in_dFrame );
-	XSI::PolygonMesh polymeshGeom = prim.GetGeometry( in_dFrame, siConstructionModeSecondaryShape );
+  assert(m_spAbcOPrim->GetType() == EOObject_Polymesh);
+  CAbcPtr<IAbcOPolyMesh> spAbcPolyMesh = static_cast<IAbcOPolyMesh*>(m_spAbcOPrim.GetPtr());
 
-	XSI::CGeometryAccessor ga = polymeshGeom.GetGeometryAccessor2( siConstructionModeSecondaryShape );
-	
-	// get the number of vertices for each polygons
-    ExportHelper::LongVector cwVertIndices;
-	ExportHelper::FloatVector fvPos;
-	ExportHelper::PrepareGeomData( fvPos, cwVertIndices, m_FaceCounts, ga );
+  ExportHelper::LongVector cwVertIndices;
+  ExportHelper::FloatVector fvPos;
+  ExportHelper::LongVector nodeIndices;
+  ExportHelper::FloatVector UVs;
+  ExportHelper::ClusterInfoVector clusterInfoVec;
+  ExportHelper::FloatVector normals;
+  float* pVel = NULL;
+  ExportHelper::LongVector normalNodeIndices;
+  double centerx = 0;
+  double centery = 0;
+  double centerz = 0;
+  double extentx = 0;
+  double extenty = 0;
+  double extentz = 0;
 
-	ExportHelper::LongVector nodeIndices;
-	ExportHelper::FloatVector UVs;
-	ExportHelper::ClusterInfoVector clusterInfoVec;
+  // If the mesh is have no deformers or the deformer is not animated we just reuse the previous sample.
+  Application().LogMessage(CString(spAbcPolyMesh->GetSampleCount()) +", "+ CString(setFromPrevious)+", "+ CString(isStatic));
+  if (spAbcPolyMesh->GetSampleCount() > 0 && (isStatic || setFromPrevious))
+  {
+    //Application().LogMessage("reuse sample");
+    Alembic::Abc::Box3d AbcBBox(
+      Alembic::Abc::V3d(centerx - extentx, centery - extenty, centerz - extentz),
+      Alembic::Abc::V3d(centerx + extentx, centery + extenty, centerz + extentz)
+      );
+    spAbcPolyMesh->AddSample(
+      fvPos.GetArray(), (int)fvPos.GetCount() / 3,
+      (const int*)cwVertIndices.GetArray(), (int)cwVertIndices.GetCount(),
+      (const int*)m_FaceCounts.GetArray(), (int)m_FaceCounts.GetCount(),
+      UVs.GetArray(), (int)UVs.GetCount() / 2,
+      (const unsigned int*)nodeIndices.GetArray(), (int)nodeIndices.GetCount(),
+      (const unsigned int*)normalNodeIndices.GetArray(), (int)normalNodeIndices.GetCount(),
+      normals.GetArray(), (int)normals.GetCount() / 3,
+      pVel, (int)fvPos.GetCount(),
+      AbcBBox,
+      true
+      );
+  }
+  else
+  {
+    //Application().LogMessage("add new sample");
+    XSI::X3DObject x3dObj(m_Obj);
+    XSI::Primitive prim = x3dObj.GetActivePrimitive(in_dFrame);
+    XSI::PolygonMesh polymeshGeom = prim.GetGeometry(in_dFrame, siConstructionModeSecondaryShape);
 
-	ExportHelper::PrepareUVData( UVs, nodeIndices, clusterInfoVec, m_FaceCounts, ga, polymeshGeom );
+    XSI::CGeometryAccessor ga = polymeshGeom.GetGeometryAccessor2(siConstructionModeSecondaryShape);
 
-	ExportHelper::FloatVector normals;
-	ExportHelper::LongVector normalNodeIndices;
-	ExportHelper::PrepareNormalData( normals, normalNodeIndices, m_FaceCounts, ga, polymeshGeom );
+    // get the number of vertices for each polygons
+    ExportHelper::PrepareGeomData(fvPos, cwVertIndices, m_FaceCounts, ga);
 
-	// Get the bounding box
-	double centerx;
-	double centery;
-	double centerz;
-	double extentx;
-	double extenty;
-	double extentz;
-	MATH::CTransformation XfoObjectToBBoxSpace;
-	polymeshGeom.GetBoundingBox( centerx, centery, centerz, extentx, extenty, extentz, XfoObjectToBBoxSpace );
+    ExportHelper::PrepareUVData(UVs, nodeIndices, clusterInfoVec, m_FaceCounts, ga, polymeshGeom);
 
-	Alembic::Abc::Box3d AbcBBox(
-		Alembic::Abc::V3d( centerx - extentx, centery - extenty, centerz - extentz ),
-		Alembic::Abc::V3d( centerx + extentx, centery + extenty, centerz + extentz )
-		);
+    ExportHelper::PrepareNormalData(normals, normalNodeIndices, m_FaceCounts, ga, polymeshGeom);
 
-	assert( m_spAbcOPrim->GetType() == EOObject_Polymesh );
-	CAbcPtr<IAbcOPolyMesh> spAbcPolyMesh = static_cast<IAbcOPolyMesh*>( m_spAbcOPrim.GetPtr() );
+    // Get point velocity
 
-	spAbcPolyMesh->AddSample(
-		fvPos.GetArray(), (int)fvPos.GetCount()/3,
-		(const int*)cwVertIndices.GetArray(), (int)cwVertIndices.GetCount(),
-		(const int*)m_FaceCounts.GetArray(), (int)m_FaceCounts.GetCount(),
-		UVs.GetArray(), (int)UVs.GetCount()/2,
-		(const unsigned int*)nodeIndices.GetArray(), (int)nodeIndices.GetCount(),
-		(const unsigned int*)normalNodeIndices.GetArray(), (int)normalNodeIndices.GetCount(),
-		normals.GetArray(), (int)normals.GetCount()/3,
-		AbcBBox
-		);
+    XSI::ICEAttribute pointVelocityAttr;
+    XSI::CICEAttributeDataArrayVector3f pointVelocityDataArray;
+    std::vector<XSI::MATH::CVector3f> fvecVel;
 
-	for ( ExportHelper::ClusterInfoVector::const_iterator it=clusterInfoVec.begin(); it!=clusterInfoVec.end(); ++it)
-	{
-		ExportHelper::ClusterInfo* pClusterInfo = *it;
+    const AttributeNameSet& userMshCloudAttrs = m_pExporter->GetUserSpecifiedAttributesPolymesh();
 
-		CAbcPtr<IAbcOFaceSet> spOFaceSet;
-		spAbcPolyMesh->GetFaceSet( &spOFaceSet, pClusterInfo->m_csName.GetAsciiString() );
-		
-		if ( spOFaceSet == NULL )
-			spAbcPolyMesh->CreateFaceSet( &spOFaceSet, pClusterInfo->m_csName.GetAsciiString() );
-		
-		if ( spOFaceSet)
-			spOFaceSet->AddSample( (const Alembic::Util::int32_t*) pClusterInfo->m_Elements.GetArray(), pClusterInfo->m_Elements.GetCount() );
-	}
+    if (userMshCloudAttrs.Find(L"PointVelocity"))
+    {
+      pointVelocityAttr = polymeshGeom.GetICEAttributeFromName("PointVelocity");
+      pointVelocityAttr.GetDataArray(pointVelocityDataArray);
 
-	for ( ExportHelper::ClusterInfoVector::iterator it=clusterInfoVec.begin(); it!=clusterInfoVec.end(); ++it)
-	{
-		delete *it;
-	}
+      if (pointVelocityDataArray.GetCount() > 0 && pointVelocityDataArray.IsConstant() == false)
+      {
+        pVel = (float*)&pointVelocityDataArray[0];
+      }
+      else
+      {
+        fvecVel.resize(pointVelocityAttr.GetElementCount(), pointVelocityDataArray.GetCount() > 0 ? pointVelocityDataArray[0] : XSI::MATH::CVector3f());
+        pVel = (float*)fvecVel.data();
+      }
+    }
 
-	WriteAttributeSample( prim, polymeshGeom );
+    // Get the bounding box
+    MATH::CTransformation XfoObjectToBBoxSpace;
+    polymeshGeom.GetBoundingBox(centerx, centery, centerz, extentx, extenty, extentz, XfoObjectToBBoxSpace);
+
+    Alembic::Abc::Box3d AbcBBox(
+      Alembic::Abc::V3d(centerx - extentx, centery - extenty, centerz - extentz),
+      Alembic::Abc::V3d(centerx + extentx, centery + extenty, centerz + extentz)
+      );
+
+
+    spAbcPolyMesh->AddSample(
+      fvPos.GetArray(), (int)fvPos.GetCount() / 3,
+      (const int*)cwVertIndices.GetArray(), (int)cwVertIndices.GetCount(),
+      (const int*)m_FaceCounts.GetArray(), (int)m_FaceCounts.GetCount(),
+      UVs.GetArray(), (int)UVs.GetCount() / 2,
+      (const unsigned int*)nodeIndices.GetArray(), (int)nodeIndices.GetCount(),
+      (const unsigned int*)normalNodeIndices.GetArray(), (int)normalNodeIndices.GetCount(),
+      normals.GetArray(), (int)normals.GetCount() / 3,
+      pVel, (int)pointVelocityDataArray.GetCount(),
+      AbcBBox,
+      false
+      );
+
+    for (ExportHelper::ClusterInfoVector::const_iterator it = clusterInfoVec.begin(); it != clusterInfoVec.end(); ++it)
+    {
+      ExportHelper::ClusterInfo* pClusterInfo = *it;
+
+      CAbcPtr<IAbcOFaceSet> spOFaceSet;
+      spAbcPolyMesh->GetFaceSet(&spOFaceSet, pClusterInfo->m_csName.GetAsciiString());
+
+      if (spOFaceSet == NULL)
+        spAbcPolyMesh->CreateFaceSet(&spOFaceSet, pClusterInfo->m_csName.GetAsciiString());
+
+      if (spOFaceSet)
+        spOFaceSet->AddSample((const Alembic::Util::int32_t*) pClusterInfo->m_Elements.GetArray(), pClusterInfo->m_Elements.GetCount());
+    }
+
+    for (ExportHelper::ClusterInfoVector::iterator it = clusterInfoVec.begin(); it != clusterInfoVec.end(); ++it)
+    {
+      delete *it;
+    }
+
+    WriteAttributeSample(prim, polymeshGeom);
+  }
 
 	return CStatus::OK;
 }
@@ -1062,8 +1148,8 @@ XSI::CStatus ExportTreeNode::WriteAttributeSample( XSI::Primitive& in_prim, XSI:
 			attr = in_geom.GetICEAttributeFromName( it->first );
 		else
 			attr = in_prim.GetICEAttributeFromName( it->first );
-
-		if ( !attr.IsDefined() )
+    
+		if ( !attr.IsDefined() || attr.GetName() == "PointVelocity" )
 			continue;
 
 		CAbcPtr<IAbcOProperty> spProp = it->second;

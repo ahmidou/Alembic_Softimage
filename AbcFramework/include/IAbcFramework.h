@@ -14,7 +14,7 @@
 #ifndef ABCFRAMEWORKINTERFACE_H
 #define ABCFRAMEWORKINTERFACE_H
 
-#include "AbcFrameworkDll.h"
+//#include "AbcFrameworkDll.h"
 #include "AbcFrameworkImportedTypes.h"
 #include "AbcFrameworkPlainOldDataType.h"
 

@@ -70,7 +70,8 @@ EAbcResult CAbcIArchive::GetTop( IAbcIObject** out_ppObject ) const
 	if ( !out_ppObject ) 
 		return EResult_InvalidPtr;
 	*out_ppObject = NULL;
-	IObject l_obj( m_Archive, kTop );
+
+	IObject l_obj((IArchive)m_Archive);
 	if ( l_obj.valid() )
 		return CreateFromInternal( l_obj, out_ppObject );
 	else

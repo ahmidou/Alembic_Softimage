@@ -1,3 +1,0 @@
-LIBRARY AbcFramework
-EXPORTS
-	GetFrameworkInterface	@1

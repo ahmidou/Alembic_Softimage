@@ -14,7 +14,7 @@
 #define ABCFRAMEWORKPLAINOLDDATATYPE_H
 
 #include <assert.h>
-#include <OpenEXR/half.h>
+#include <half.h>
 
 // =========================================================================================
 // PLAIN OLD DATA TYPES AND THEIR TRAITS

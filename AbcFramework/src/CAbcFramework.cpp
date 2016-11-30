@@ -33,12 +33,6 @@ IAbcOArchive::~IAbcOArchive()
 }
 
 
-ABCFRAMEWORK_API IAbcFramework* GetFrameworkInterface()
-{
-	IAbcFramework* l_pInterface = CAbcFramework::GetInstance();
-	return l_pInterface;
-}
-
 CAbcFramework::CAbcFramework()
 {
 }

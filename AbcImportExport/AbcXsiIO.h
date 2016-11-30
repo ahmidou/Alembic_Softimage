@@ -16,6 +16,7 @@
 #include <IAbcFramework.h>
 #include <AbcFrameworkLoader.h>
 #include <AbcFrameworkUtil.h>
+#include <CAbcFramework.h>
 
 //*****************************************************************************
 /*! \class AbcXsiIO
@@ -38,7 +39,6 @@ public:
 	IAbcFramework* GetFrameworkPtr() { return m_spIFramework; }
 
 protected:
-	MODULE_HANDLE  m_pAbcDll;
 	CAbcPtr<IAbcFramework> m_spIFramework;
 };
 

@@ -44,26 +44,26 @@ void AddDefaultAttributesToString( XSI::CString& io_cstr, const XSI::CString& in
 SICALLBACK XSILoadPlugin( PluginRegistrar& in_reg )
 {
 	in_reg.PutAuthor(L"Softimage");
-	in_reg.PutName(L"Abc Import/Export Plug-in");
+	in_reg.PutName(L"Hybride Abc Import/Export Plug-in");
 	in_reg.PutVersion(1,0);
 
 	// Register the commands for Import and Export
-	in_reg.RegisterCommand(L"AbcExport",L"AbcExport");
-	in_reg.RegisterCommand(L"AbcImport",L"AbcImport");
-	in_reg.RegisterCommand(L"AbcVer",L"AbcVer");
+	in_reg.RegisterCommand(L"Hybride_AbcExport",L"Hybride_AbcExport");
+	in_reg.RegisterCommand(L"Hybride_AbcImport",L"Hybride_AbcImport");
+	in_reg.RegisterCommand(L"Hybride_AbcVer",L"Hybride_AbcVer");
 
 	// Register the properties for Import and Export
-	in_reg.RegisterProperty( L"ImportAbcOptions" );
-	in_reg.RegisterProperty( L"ExportAbcOptions" );
+	in_reg.RegisterProperty( L"Hybride_ImportAbcOptions" );
+	in_reg.RegisterProperty( L"Hybride_ExportAbcOptions" );
 
 	// Below commands are accessed through the main menu by selecting the sub menu of File->Alembic. 
-	// They equivalent to the AbcExport and AbcImport command, except that they will inspect options PPG and 
+	// They equivalent to the Hybride_AbcExport and Hybride_AbcImport command, except that they will inspect options PPG and 
 	// the browser dialog to specify the file name which will require users' confirmation.
-	in_reg.RegisterCommand(L"OnAbcImportMenu",L"OnAbcImportMenu");
-	in_reg.RegisterCommand(L"OnAbcExportMenu",L"OnAbcExportMenu");
+	in_reg.RegisterCommand(L"OnHybride_AbcImportMenu",L"OnHybride_AbcImportMenu");
+	in_reg.RegisterCommand(L"OnHybride_AbcExportMenu",L"OnHybride_AbcExportMenu");
 
 	// Register the event to drag and drop abc file int Softimage
-	in_reg.RegisterEvent(L"DragDropAbcFile", siOnDragAndDrop2);
+	in_reg.RegisterEvent(L"Hybride_DragDropAbcFile", siOnDragAndDrop2);
 
 	//RegistrationInsertionPoint - do not remove this line
 
@@ -78,7 +78,7 @@ SICALLBACK XSIUnloadPlugin( const PluginRegistrar& in_reg )
 	return CStatus::OK;
 }
 
-SICALLBACK AbcExport_Init( CRef& in_ctxt )
+SICALLBACK Hybride_AbcExport_Init( CRef& in_ctxt )
 {
 	Context ctxt( in_ctxt );
 	Command oCmd;
@@ -100,7 +100,7 @@ SICALLBACK AbcExport_Init( CRef& in_ctxt )
 	return CStatus::OK;
 }
 
-SICALLBACK AbcExport_Execute( CRef& in_ctxt )
+SICALLBACK Hybride_AbcExport_Execute( CRef& in_ctxt )
 {
 	Context ctxt( in_ctxt );
 	CValueArray l_XSIArgs = ctxt.GetAttribute(L"Arguments");
@@ -116,7 +116,7 @@ SICALLBACK AbcExport_Execute( CRef& in_ctxt )
 	CString l_csUserAttrsOtherPrim = l_XSIArgs[8];
 
 	Application l_app;
-	l_app.LogMessage(L"AbcExport_Execute called",siVerboseMsg);
+	l_app.LogMessage(L"Hybride_AbcExport_Execute called",siVerboseMsg);
 
 	EAbcArchiveType l_eArchiveType = EArchiveType_Any;
 	if ( l_csStorage.IsEqualNoCase( L"HDF5" ) )
@@ -172,7 +172,7 @@ SICALLBACK AbcExport_Execute( CRef& in_ctxt )
 	return status;
 }
 
-SICALLBACK AbcImport_Init( CRef& in_ctxt )
+SICALLBACK Hybride_AbcImport_Init( CRef& in_ctxt )
 {
 	Context ctxt( in_ctxt );
 	Command oCmd;
@@ -195,7 +195,7 @@ SICALLBACK AbcImport_Init( CRef& in_ctxt )
 	return CStatus::OK;
 }
 
-SICALLBACK AbcImport_Execute( CRef& in_ctxt )
+SICALLBACK Hybride_AbcImport_Execute( CRef& in_ctxt )
 {
 	Context ctxt( in_ctxt );
 	CValueArray l_XSIArgs = ctxt.GetAttribute(L"Arguments");
@@ -229,7 +229,7 @@ SICALLBACK AbcImport_Execute( CRef& in_ctxt )
 		app.LogMessage(L"Invalid AnimationImportMode argument",siErrorMsg);
 		return CStatus::Fail;
 	}
-	app.LogMessage(L"AbcImport_Execute called",siVerboseMsg);
+	app.LogMessage(L"Hybride_AbcImport_Execute called",siVerboseMsg);
 
 	std::auto_ptr<AbcXsiImporter> l_pImporter( new AbcXsiImporter() );
 	CStatus status = CStatus::Fail;
@@ -250,7 +250,7 @@ SICALLBACK AbcImport_Execute( CRef& in_ctxt )
 	return CStatus::OK;
 }
 
-SICALLBACK AbcVer_Init( CRef& in_ctxt )
+SICALLBACK Hybride_AbcVer_Init( CRef& in_ctxt )
 {
 	Context ctxt( in_ctxt );
 	Command oCmd;
@@ -261,7 +261,7 @@ SICALLBACK AbcVer_Init( CRef& in_ctxt )
 	return CStatus::OK;
 }
 
-SICALLBACK AbcVer_Execute( CRef& in_ctxt )
+SICALLBACK Hybride_AbcVer_Execute( CRef& in_ctxt )
 {
 	AbcXsiIO l_AbcIO;
 	if ( l_AbcIO.GetFrameworkPtr() )
@@ -275,7 +275,7 @@ SICALLBACK AbcVer_Execute( CRef& in_ctxt )
 	return CStatus::OK;
 }
 
-SICALLBACK OnAbcImportMenu_Init( CRef& in_ctxt )
+SICALLBACK OnHybride_AbcImportMenu_Init( CRef& in_ctxt )
 {
 	Context ctxt( in_ctxt );
 	Command oCmd;
@@ -292,22 +292,22 @@ SICALLBACK OnAbcImportMenu_Init( CRef& in_ctxt )
 	return CStatus::OK;
 }
 
-SICALLBACK OnAbcImportMenu_Execute( CRef& in_ctxt )
+SICALLBACK OnHybride_AbcImportMenu_Execute( CRef& in_ctxt )
 {
 	Context ctxt( in_ctxt );
 	Application app;
 	
-	// Inspect the ImportAbcOptions, to set the options for importer.
+	// Inspect the Hybride_ImportAbcOptions, to set the options for importer.
 	Model rootModel = app.GetActiveSceneRoot();
 	Property optionsProp;
-	rootModel.GetPropertyFromName( L"ImportAbcOptions", optionsProp );	
+	rootModel.GetPropertyFromName( L"Hybride_ImportAbcOptions", optionsProp );	
 	// Create new one if the property doesn't exist yet.
 	if( !optionsProp.IsValid() )
-		optionsProp = rootModel.AddProperty( L"ImportAbcOptions");
+		optionsProp = rootModel.AddProperty( L"Hybride_ImportAbcOptions");
 	
 	CValueArray aInspectObjArgs(5);
 	CValue retValue;
-	aInspectObjArgs[0]= L"ImportAbcOptions";
+	aInspectObjArgs[0]= L"Hybride_ImportAbcOptions";
 	aInspectObjArgs[1]= CValue();
 	aInspectObjArgs[2]= L"Alembic Import";
 	aInspectObjArgs[3]= (LONG)siModal;
@@ -355,12 +355,12 @@ SICALLBACK OnAbcImportMenu_Execute( CRef& in_ctxt )
 	aImportArgs[0] = strFileFullName;
 	aImportArgs[8] = optionsProp.GetParameterValue( L"CreateModel");
 	aImportArgs[9] = optionsProp.GetParameterValue( L"CreateICETreeMode" );
-	app.ExecuteCommand( L"AbcImport", aImportArgs, retValue );
+	app.ExecuteCommand( L"Hybride_AbcImport", aImportArgs, retValue );
 
 	return retValue? CStatus::OK : CStatus::Fail; 
 }
 
-SICALLBACK OnAbcExportMenu_Init( CRef& in_ctxt )
+SICALLBACK OnHybride_AbcExportMenu_Init( CRef& in_ctxt )
 {
 	Context ctxt( in_ctxt );
 	Command oCmd;
@@ -374,15 +374,15 @@ SICALLBACK OnAbcExportMenu_Init( CRef& in_ctxt )
 	return CStatus::OK;
 }
 
-SICALLBACK OnAbcExportMenu_Execute( CRef& in_ctxt )
+SICALLBACK OnHybride_AbcExportMenu_Execute( CRef& in_ctxt )
 {
 	Application app;
 	Model rootModel = app.GetActiveSceneRoot();
 	Property optionsProp;
-	rootModel.GetPropertyFromName( L"ExportAbcOptions", optionsProp );
+	rootModel.GetPropertyFromName( L"Hybride_ExportAbcOptions", optionsProp );
 	if( !optionsProp.IsValid() )
 	{
-		optionsProp = rootModel.AddProperty( L"ExportAbcOptions");
+		optionsProp = rootModel.AddProperty( L"Hybride_ExportAbcOptions");
 		SScenePlaybackSettings playbackSettings;
 		optionsProp.PutParameterValue( L"StartFrame", playbackSettings.m_dFrameIn );
 		optionsProp.PutParameterValue( L"EndFrame", playbackSettings.m_dFrameOut );
@@ -393,7 +393,7 @@ SICALLBACK OnAbcExportMenu_Execute( CRef& in_ctxt )
 
 	CValueArray aInspectObjArgs(5);
 	CValue retValue;
-	aInspectObjArgs[0]= L"ExportAbcOptions";
+	aInspectObjArgs[0]= L"Hybride_ExportAbcOptions";
 	aInspectObjArgs[1]= XSI::CValue();
 	aInspectObjArgs[2]= CUtils::Translate( L"Alembic Export", L"ABCIMPORTEXPORT" );
 	aInspectObjArgs[3]= (LONG)XSI::siModal;
@@ -440,12 +440,12 @@ SICALLBACK OnAbcExportMenu_Execute( CRef& in_ctxt )
 	aExportArgs[6] = optionsProp.GetParameterValue( L"IncludeAttributesPointcloud" );
 	aExportArgs[7] = optionsProp.GetParameterValue( L"IncludeAttributesPolymesh" );
 	aExportArgs[8] = optionsProp.GetParameterValue( L"IncludeAttributesOtherPrim" );
-	app.ExecuteCommand( L"AbcExport", aExportArgs, retValue );
+	app.ExecuteCommand( L"Hybride_AbcExport", aExportArgs, retValue );
 
 	return retValue? CStatus::OK : CStatus::Fail;
 }
 
-SICALLBACK ImportAbcOptions_Define( const CRef& in_ctxt )
+SICALLBACK Hybride_ImportAbcOptions_Define( const CRef& in_ctxt )
 {
 	// Here is where we add all the parameters to the 
 	// Custom Property.  This will be called each time 
@@ -462,7 +462,7 @@ SICALLBACK ImportAbcOptions_Define( const CRef& in_ctxt )
 	return CStatus::OK;
 }
 
-SICALLBACK ImportAbcOptions_DefineLayout( const CRef& in_ctxt )
+SICALLBACK Hybride_ImportAbcOptions_DefineLayout( const CRef& in_ctxt )
 {
 	// XSI will call this to define the visual appearance of the CustomProperty
 	// The layout is shared between all instances of the CustomProperty
@@ -490,7 +490,7 @@ SICALLBACK ImportAbcOptions_DefineLayout( const CRef& in_ctxt )
 	return CStatus::OK;
 }
 
-SICALLBACK ExportAbcOptions_Define( const CRef& in_ctxt )
+SICALLBACK Hybride_ExportAbcOptions_Define( const CRef& in_ctxt )
 {
 	// Here is where we add all the parameters to the 
 	// Custom Property.  This will be called each time 
@@ -519,7 +519,7 @@ SICALLBACK ExportAbcOptions_Define( const CRef& in_ctxt )
 	return CStatus::OK;
 }
 
-SICALLBACK ExportAbcOptions_DefineLayout( const CRef& in_ctxt )
+SICALLBACK Hybride_ExportAbcOptions_DefineLayout( const CRef& in_ctxt )
 {
 	// XSI will call this to define the visual appearance of the CustomProperty
 	// The layout is shared between all instances of the CustomProperty
@@ -692,7 +692,7 @@ SICALLBACK ExportAbcOptions_PPGEvent( const CRef& in_ctxt )
 	return CStatus::OK;
 }
 
-SICALLBACK DragDropAbcFile_OnEvent( CRef& in_ctxt )
+SICALLBACK Hybride_DragDropAbcFile_OnEvent( CRef& in_ctxt )
 {
 	Context ctxt( in_ctxt );
 	CValue eAction = ctxt.GetAttribute( L"DragAndDropAction" );
@@ -712,7 +712,7 @@ SICALLBACK DragDropAbcFile_OnEvent( CRef& in_ctxt )
 					CValueArray aImportArgs(1);
 					aImportArgs[0] = fileFullName;
 					CValue retValue;
-					Application().ExecuteCommand( L"OnAbcImportMenu", aImportArgs, retValue );
+					Application().ExecuteCommand( L"OnHybride_AbcImportMenu", aImportArgs, retValue );
 				}
 			}
 		}

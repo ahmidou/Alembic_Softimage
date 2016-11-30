@@ -14,11 +14,11 @@
 #define ABCFRAMEWORKIMPORTEDTYPES_H
 
 // headers for OpenEXR data types
-#include <OpenEXR/ImathVec.h>
-#include <OpenEXR/ImathBox.h>
-#include <OpenEXR/ImathMatrix.h>
-#include <OpenEXR/ImathQuat.h>
-#include <OpenEXR/ImathColor.h>
+#include <ImathVec.h>
+#include <ImathBox.h>
+#include <ImathMatrix.h>
+#include <ImathQuat.h>
+#include <ImathColor.h>
 
 // =========================================================================================
 // IMPORTING OPEN EXR TYPES

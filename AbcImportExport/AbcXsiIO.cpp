@@ -11,25 +11,18 @@
 #include <xsi_application.h>
 using namespace XSI;
 
-AbcXsiIO::AbcXsiIO() : m_pAbcDll(0)
+IAbcFramework* GetFrameworkInterface()
 {
-	m_pAbcDll = AbcFrameworkLoader::InitFramework();
-	if ( m_pAbcDll == 0 )
-	{
-		CString l_csError = L"Unable to load the Alembic Framwork library";
-		Application().LogMessage( l_csError, siErrorMsg );
-#ifdef linux
-		l_csError = L"Reason: ";
-		l_csError += dlerror();
-		Application().LogMessage( l_csError, siErrorMsg );
-#endif
-	}
-	else
-	{
-		m_spIFramework = AbcFrameworkLoader::GetFramework( m_pAbcDll );
+  IAbcFramework* l_pInterface = CAbcFramework::GetInstance();
+  return l_pInterface;
+}
+
+AbcXsiIO::AbcXsiIO()
+{
+    CAbcFramework::Init();
+		m_spIFramework = GetFrameworkInterface();
 		if ( !m_spIFramework )
 			Application().LogMessage( L"Unable to get an Alembic Framework Interface", siErrorMsg );
-	}
 }
 
 AbcXsiIO::~AbcXsiIO()
@@ -37,6 +30,5 @@ AbcXsiIO::~AbcXsiIO()
 	// Be sure to release first before unloading the DLL
 	if ( m_spIFramework )
 		m_spIFramework = NULL;
-	if ( m_pAbcDll )
-		AbcFrameworkLoader::CloseFramework( m_pAbcDll );
+  CAbcFramework::Destroy();
 }

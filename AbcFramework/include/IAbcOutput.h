@@ -145,6 +145,8 @@ public:
 	*/
 	virtual EAbcResult SetTimeSampling( double in_dTimePerCycle, double in_dStartTime ) = 0;
 
+  virtual size_t GetSampleCount() = 0;
+
 	/*! Create a face set object for this polymesh.
 	\param in_pszName The name of the face set
 	\param out_ppOFaceSet The pointer to IAbcOFaceSet pointer which holds the created face set
@@ -208,7 +210,9 @@ public:
 		const unsigned int* in_pFaceVertexIndices, int in_iFaceVertexIndicesCount,
 		const unsigned int* in_pVertexNormalIndices, int in_iVertexNormalIndicesCount,
 		const float* in_pNormals, int in_iNormalCount,
-		const Alembic::Abc::Box3d& in_BBox
+    const float* in_pVelocities, int in_iVelocityCount,
+		const Alembic::Abc::Box3d& in_BBox,
+    const bool setFromPrevious
 		) = 0;
 };
 
