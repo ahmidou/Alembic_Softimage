@@ -1,22 +1,77 @@
+This is a original version of the original Alembic Softimage plugin.
+
 ============================================================================================
 Copyright 2015 Autodesk, Inc.
 ============================================================================================
 
-This is a modified version of the original Alembic Softimage plugin.
+BUILD INSTRUCTION FOR SOFTIMAGE ALEMBIC PLUGIN
 
-the new features are:
+Requirements:
+	Softimage 2015
+	Alembic 1.5.1 libraries (refer to BuildingAlembic.txt for notes)
+	Environment: 
+		Windows: Windows 7 (and up), MS Visual Studio 2012 
+		Linux: Fedora 14, gcc 4.1.2, make 3.82
 
-* Merge the AbcFramework and the plugin in one dll
+1. Start a shell with Softimage environment
+	Windows:
+		Start Softimage Command Prompt
+	Linux:
+		$ source path/to/Softimage_2015/.xsi_2015
 
-* The velocity attribute is now exported as a native alembic geo .v attribute
+2. Setup build environment:
+	Windows: 
+		> call "C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\vcvarsall.bat" x64
+	
+	Linux:
+		$ setenv CXX path/to/gcc-4.1.2
+		$ setenv CC path/to/gcc-4.1.2
 
-* The exporter is now reusing samples when possible (needs Softimage 2015 SP2 QFE12)
+3. Unzip the source into your destination folder
 
-* updated to Alembic 1.7.0
+4. Change to the destination folder
 
-* Added cmake
+5. Create symbolic link to Alembic 1.5.1 folder
+	Windows:
+		> mklink /D Alembic path\to\Alembic1.5.1
+	
+	Linux:
+		$ ln -s path/to/Alembic1.5.1 Alembic
+	
+	Alternatively, you can copy Alembic folder over
 
-The easiest way to build it is to use this automatic builder that will download and build all
-the dependencies for you
+6. (Optional) Run the script to backup the original libraries in Softimage 2015 installation
+	Windows: 
+		> backup.bat
+		(The libraries are saved in folder ./backup)
+	
+	Linux: 
+		$ make backup
+		(The libraries are saved in ./backup.tar)
 
-https://github.com/hybridetech/alembic-build-club
+7. Run the build script.
+	Windows: 
+		> build.bat
+	Linux: 
+		$ make
+	 
+	The build result is saved in folder ./Application
+		Application
+			bin
+				AbcFramework.dll / libAbcFramework.so
+			Plugins
+				AbcImportExport.dll / libAbcImportExport.so
+			Dictionary
+				en
+					ABCIMPORTEXPORT.dict
+				jp
+					ABCIMPORTEXPORT.dict [only on Windows]
+			
+8. Run the script to deploy the built libraries to Softimage 2015 installation folder
+	Windows: 
+		> deploy.bat
+	Linux: 
+		$ make deploy
+
+
+
